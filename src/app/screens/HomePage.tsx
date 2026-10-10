@@ -114,6 +114,9 @@ export function HomePage() {
         <a href="#/shop" className="button primary">
           Start Exploring →
         </a>
+        <a href="#/arena" className="text-sm font-semibold text-[#066772] underline">
+          Run the prototype benchmark
+        </a>
       </section>
     </main>
   )

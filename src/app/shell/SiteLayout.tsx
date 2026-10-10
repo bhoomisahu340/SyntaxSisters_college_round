@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
+import { TabBar } from './TabBar.tsx'
 
-export type SiteRoute = 'home' | 'shop' | 'booking'
+export type SiteRoute = 'home' | 'shop' | 'booking' | 'calibrate' | 'debug' | 'arena' | 'results'
 
 type SiteLayoutProps = {
   route: SiteRoute
@@ -14,12 +15,15 @@ const navigation: ReadonlyArray<{ label: string; route: SiteRoute }> = [
 ]
 
 function routeHref(route: SiteRoute): string {
-  return route === 'home' ? '#/' : `#/${route}`
+  if (route === 'home') return '#/'
+  if (route === 'debug') return '#/debug/vision'
+  return `#/${route}`
 }
 
 export function SiteLayout({ route, children }: SiteLayoutProps) {
   return (
     <div className="drishva-site pb-28">
+      <TabBar />
       <header className="navbar">
         <a href="#/" className="brand" aria-label="Drishva home">
           Drishva<span>.</span>
@@ -52,6 +56,7 @@ export function SiteLayout({ route, children }: SiteLayoutProps) {
         </a>
         <p>See. Speak. Browse.</p>
         <span>Designed with accessibility in mind.</span>
+        <a className="text-xs font-semibold text-[#066772] underline" href="#/arena">Benchmark</a>
       </footer>
     </div>
   )

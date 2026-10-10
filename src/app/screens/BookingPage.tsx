@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { bus } from '../../core/bus.ts'
 
 type BookingSummary = ReadonlyArray<{ label: string; value: string }>
 
@@ -31,9 +32,92 @@ const minimumBookingDate = getLocalDateString(new Date())
 
 export function BookingPage() {
   const formRef = useRef<HTMLFormElement>(null)
+  const serviceRef = useRef<HTMLSelectElement>(null)
+  const dateRef = useRef<HTMLInputElement>(null)
+  const timeRef = useRef<HTMLSelectElement>(null)
   const formHeadingRef = useRef<HTMLHeadingElement>(null)
   const successHeadingRef = useRef<HTMLHeadingElement>(null)
   const [confirmation, setConfirmation] = useState<BookingSummary | null>(null)
+  const [service, setService] = useState('')
+  const [time, setTime] = useState('')
+  const [voiceNotice, setVoiceNotice] = useState('')
+
+  useEffect(() => {
+    const focusControl = (element: HTMLElement | null) => {
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      element?.focus()
+    }
+    const selectService = (index: number) => {
+      const next = appointmentTypes[index - 1]
+      if (!next) {
+        setVoiceNotice('That service number is not available.')
+        return
+      }
+      setService(next)
+      setVoiceNotice(`Selected ${next}.`)
+      bus.emit('BENCHMARK_TASK_SIGNAL', { task: 'search-service' })
+    }
+    const searchService = (query: string) => {
+      const match = appointmentTypes.find((item) => item.toLowerCase().includes(query.toLowerCase()))
+      if (match) {
+        setService(match)
+        setVoiceNotice(`Selected ${match}.`)
+        bus.emit('BENCHMARK_TASK_SIGNAL', { task: 'search-service' })
+      } else {
+        setVoiceNotice(`No appointment type matches “${query}”.`)
+      }
+    }
+    const offAction = bus.on('BOOKING_VOICE_ACTION_REQUESTED', ({ action, value }) => {
+      if (confirmation) return
+      switch (action) {
+        case 'show-doctors':
+          focusControl(serviceRef.current)
+          setVoiceNotice('This demo lists appointment types, not individual doctors.')
+          break
+        case 'search':
+          if (typeof value === 'string') searchService(value)
+          break
+        case 'select-doctor':
+          if (typeof value === 'number') selectService(value)
+          break
+        case 'choose-date':
+          focusControl(dateRef.current)
+          setVoiceNotice('Choose a date in the date picker.')
+          break
+        case 'show-slots':
+          focusControl(timeRef.current)
+          setVoiceNotice('Available appointment times are in the time selector.')
+          break
+        case 'select-slot':
+          if (typeof value === 'number' && appointmentTimes[value - 1]) {
+            setTime(appointmentTimes[value - 1])
+            setVoiceNotice(`Selected ${appointmentTimes[value - 1]}.`)
+            bus.emit('BENCHMARK_TASK_SIGNAL', { task: 'select-slot' })
+          } else {
+            setVoiceNotice('That appointment time number is not available.')
+          }
+          break
+      }
+    })
+    const offSearch = bus.on('VOICE_SEARCH_REQUESTED', ({ query }) => searchService(query))
+    const offCancel = bus.on('UI_CANCEL_REQUESTED', () => {
+      if (confirmation) {
+        formRef.current?.reset()
+        setConfirmation(null)
+      } else {
+        formRef.current?.reset()
+      }
+      setService('')
+      setTime('')
+      setVoiceNotice('Appointment form cleared.')
+    })
+
+    return () => {
+      offAction()
+      offSearch()
+      offCancel()
+    }
+  }, [confirmation])
 
   useEffect(() => {
     if (confirmation) successHeadingRef.current?.focus()
@@ -45,6 +129,7 @@ export function BookingPage() {
     if (!form.reportValidity()) return
 
     const formData = new FormData(form)
+    bus.emit('BENCHMARK_TASK_SIGNAL', { task: 'complete-booking' })
     setConfirmation([
       { label: 'Name', value: String(formData.get('fullName') ?? '') },
       { label: 'Email', value: String(formData.get('email') ?? '') },
@@ -56,6 +141,8 @@ export function BookingPage() {
 
   function bookAnotherAppointment() {
     formRef.current?.reset()
+    setService('')
+    setTime('')
     setConfirmation(null)
     formHeadingRef.current?.focus()
   }
@@ -185,8 +272,18 @@ export function BookingPage() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="service">Appointment type *</label>
-                  <select id="service" name="service" required defaultValue="">
+                  <label htmlFor="service">Appointment type / specialty *</label>
+                  <select
+                    ref={serviceRef}
+                    id="service"
+                    name="service"
+                    required
+                    value={service}
+                    onChange={(event) => {
+                      setService(event.target.value)
+                      if (event.target.value) bus.emit('BENCHMARK_TASK_SIGNAL', { task: 'search-service' })
+                    }}
+                  >
                     <option value="">Select an appointment type</option>
                     {appointmentTypes.map((type) => (
                       <option key={type} value={type}>{type}</option>
@@ -198,6 +295,7 @@ export function BookingPage() {
                   <div className="form-group">
                     <label htmlFor="appointmentDate">Preferred date *</label>
                     <input
+                      ref={dateRef}
                       type="date"
                       id="appointmentDate"
                       name="appointmentDate"
@@ -208,10 +306,15 @@ export function BookingPage() {
                   <div className="form-group">
                     <label htmlFor="appointmentTime">Preferred time *</label>
                     <select
+                      ref={timeRef}
                       id="appointmentTime"
                       name="appointmentTime"
                       required
-                      defaultValue=""
+                      value={time}
+                      onChange={(event) => {
+                        setTime(event.target.value)
+                        if (event.target.value) bus.emit('BENCHMARK_TASK_SIGNAL', { task: 'select-slot' })
+                      }}
                     >
                       <option value="">Choose a time</option>
                       {appointmentTimes.map((time) => (
@@ -242,6 +345,7 @@ export function BookingPage() {
                 <p className="form-footnote">
                   This is a prototype. Submitting does not create a real booking.
                 </p>
+                {voiceNotice ? <p className="form-footnote" role="status">{voiceNotice}</p> : null}
               </form>
             </>
           )}

@@ -10,13 +10,39 @@ export type VoiceCommandId =
   | 'close-tab'
   | 'go-to-shop'
   | 'go-to-appointments'
+  | 'go-home'
+  | 'explore-shop'
+  | 'recenter'
   | 'book-appointment'
   | 'show-numbers'
   | 'hide-numbers'
   | 'click-number'
   | 'open-number'
+  | 'view-details'
+  | 'ui-cancel'
+  | 'show-doctors'
+  | 'choose-date'
+  | 'show-slots'
+  | 'show-all-products'
+  | 'show-accessibility-products'
+  | 'show-technology-products'
+  | 'show-daily-living-products'
+  | 'show-wellness-products'
+  | 'click'
+  | 'open'
+  | 'this'
+  | 'type-here'
+  | 'confirm'
+  | 'not-that-one'
+  | 'start-typing'
+  | 'stop-typing'
   | 'pause'
   | 'resume'
+
+export type DynamicVoiceCommand =
+  | { id: 'search'; query: string }
+  | { id: 'open-product'; query: string }
+  | { id: 'select-doctor' | 'select-slot' | 'select-target'; number: number }
 
 const FILLERS = /\b(please|um|uh|er|like|just)\b/g
 
@@ -34,6 +60,29 @@ const PHRASES: ReadonlyArray<readonly [string, VoiceCommandId]> = [
   ['open booking', 'go-to-appointments'],
   ['go to shop', 'go-to-shop'],
   ['open shop', 'go-to-shop'],
+  ['explore shop', 'explore-shop'],
+  ['go home', 'go-home'],
+  ['go to home', 'go-home'],
+  ['show accessibility products', 'show-accessibility-products'],
+  ['show technology products', 'show-technology-products'],
+  ['show daily living products', 'show-daily-living-products'],
+  ['show wellness products', 'show-wellness-products'],
+  ['show all products', 'show-all-products'],
+  ['show available slots', 'show-slots'],
+  ['show doctors', 'show-doctors'],
+  ['choose date', 'choose-date'],
+  ['not that one', 'not-that-one'],
+  ['view details', 'view-details'],
+  ['type here', 'type-here'],
+  ['start typing', 'start-typing'],
+  ['stop typing', 'stop-typing'],
+  ['confirm', 'confirm'],
+  ['cancel', 'ui-cancel'],
+  ['close', 'ui-cancel'],
+  ['click', 'click'],
+  ['open', 'open'],
+  ['this', 'this'],
+  ['recenter', 'recenter'],
   ['book an appointment', 'book-appointment'],
   ['book appointment', 'book-appointment'],
   ['page down', 'scroll-down'],
@@ -80,6 +129,29 @@ function stripWake(normalized: string): { hasWake: boolean; rest: string } {
   return { hasWake: false, rest: normalized }
 }
 
+export function matchDynamicCommand(raw: string): DynamicVoiceCommand | null {
+  const normalized = normalizeUtterance(raw)
+  const { hasWake, rest } = stripWake(normalized)
+  if (!hasWake) return null
+
+  const search = /^search for (.+)$/.exec(rest)
+  if (search?.[1]) return { id: 'search', query: search[1] }
+
+  const doctor = /^select doctor (\d{1,2})$/.exec(rest)
+  if (doctor) return { id: 'select-doctor', number: Number(doctor[1]) }
+
+  const slot = /^select slot (\d{1,2})$/.exec(rest)
+  if (slot) return { id: 'select-slot', number: Number(slot[1]) }
+
+  const selection = /^select (\d{1,2})$/.exec(rest)
+  if (selection) return { id: 'select-target', number: Number(selection[1]) }
+
+  const product = /^open (.+)$/.exec(rest)
+  if (product?.[1]) return { id: 'open-product', query: product[1] }
+
+  return null
+}
+
 export function matchNumberCommand(
   raw: string,
 ): { id: 'click-number' | 'open-number'; number: number } | null {
@@ -98,8 +170,6 @@ export function matchNumberCommand(
 function matchPhrase(haystack: string): VoiceCommandId | null {
   for (const [phrase, id] of PHRASES) {
     if (haystack === phrase) return id
-    if (haystack.startsWith(`${phrase} `)) return id
-    if (haystack.endsWith(` ${phrase}`)) return id
   }
   return null
 }

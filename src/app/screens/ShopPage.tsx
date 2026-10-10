@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { bus } from '../../core/bus.ts'
 
 type ProductCategory = 'Accessibility' | 'Technology' | 'Daily Living' | 'Wellness'
 type FilterCategory = 'All' | ProductCategory
@@ -100,6 +101,31 @@ export function ShopPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    const offSearch = bus.on('VOICE_SEARCH_REQUESTED', ({ query: nextQuery }) => {
+      setQuery(nextQuery)
+    })
+    const offCategory = bus.on('SHOP_CATEGORY_REQUESTED', ({ category: nextCategory }) => {
+      setCategory(nextCategory)
+      setQuery('')
+    })
+    const offOpenProduct = bus.on('SHOP_OPEN_PRODUCT_REQUESTED', ({ query: productQuery }) => {
+      const normalized = productQuery.toLowerCase().trim()
+      const matches = products.filter((product) =>
+        product.name.toLowerCase() === normalized,
+      )
+      if (matches.length === 1) setSelectedProduct(matches[0])
+    })
+    const offCancel = bus.on('UI_CANCEL_REQUESTED', () => setSelectedProduct(null))
+
+    return () => {
+      offSearch()
+      offCategory()
+      offOpenProduct()
+      offCancel()
+    }
+  }, [])
 
   const normalizedQuery = query.trim().toLowerCase()
   const visibleProducts = products.filter((product) => {

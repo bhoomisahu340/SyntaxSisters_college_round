@@ -1,14 +1,7 @@
 import { bus } from '../bus.ts'
+import type { TargetDescriptor } from '../events.ts'
 
-export type TargetSnapshot = {
-  id: string
-  number: number
-  name: string
-  top: number
-  left: number
-  width: number
-  height: number
-}
+export type TargetSnapshot = TargetDescriptor
 
 type ScannedTarget = {
   element: HTMLElement
@@ -95,18 +88,20 @@ function isAvailable(
 
   return !overlays.some((overlay) => {
     const overlayRect = overlay.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
     return (
-      rect.left < overlayRect.right &&
-      rect.right > overlayRect.left &&
-      rect.top < overlayRect.bottom &&
-      rect.bottom > overlayRect.top
+      centerX >= overlayRect.left &&
+      centerX <= overlayRect.right &&
+      centerY >= overlayRect.top &&
+      centerY <= overlayRect.bottom
     )
   })
 }
 
 function scan(): ScannedTarget[] {
   const overlays = Array.from(
-    document.querySelectorAll<HTMLElement>('[data-target-ignore]'),
+    document.querySelectorAll<HTMLElement>('[data-target-occluder]'),
   ).filter((overlay) => window.getComputedStyle(overlay).position === 'fixed')
 
   return Array.from(document.querySelectorAll<HTMLElement>(SELECTOR))
@@ -123,6 +118,10 @@ function scan(): ScannedTarget[] {
           left: rect.left,
           width: rect.width,
           height: rect.height,
+          tagName: element.tagName.toLowerCase(),
+          inputType: element instanceof HTMLInputElement ? element.type : '',
+          formText: element.closest('form')?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+          href: element instanceof HTMLAnchorElement ? element.href : '',
         },
       }
     })
@@ -180,20 +179,52 @@ export function startTargetScanner(): () => void {
   window.addEventListener('scroll', scheduleScan, true)
   window.addEventListener('resize', scheduleScan)
   document.addEventListener('load', scheduleScan, true)
-  const offActivate = bus.on('TARGET_ACTIVATE_REQUESTED', ({ number, verb }) => {
+  const offSelect = bus.on('TARGET_ACTIVATE_REQUESTED', ({ number, verb }) => {
     try {
       const target = publishTargets().find((item) => item.snapshot.number === number)
       if (!target) {
         bus.emit('ACTION_BLOCKED', { id: `number-${number}`, reason: 'target-not-found' })
         return
       }
-      target.element.click()
-      bus.emit('ACTION_EXECUTED', {
-        id: target.snapshot.id,
-        verb: `${verb}: ${target.snapshot.name}`,
-      })
+      bus.emit('TARGET_SELECTED_BY_NUMBER', { id: target.snapshot.id, verb })
     } catch {
       bus.emit('ACTION_BLOCKED', { id: `number-${number}`, reason: 'activation-failed' })
+    }
+  })
+  const offExecute = bus.on('TARGET_EXECUTE_REQUESTED', ({ id }) => {
+    try {
+      const target = publishTargets().find((item) => item.snapshot.id === id)
+      if (!target) {
+        bus.emit('ACTION_BLOCKED', { id, reason: 'target-not-found' })
+        return
+      }
+      target.element.click()
+      bus.emit('ACTION_EXECUTED', {
+        id,
+        verb: `click: ${target.snapshot.name}`,
+      })
+    } catch {
+      bus.emit('ACTION_BLOCKED', { id, reason: 'activation-failed' })
+    }
+  })
+  const offDictationFocus = bus.on('DICTATION_START_REQUESTED', ({ targetId }) => {
+    try {
+      const targets = scan()
+      const active = document.activeElement
+      const target = targetId
+        ? targets.find((item) => item.snapshot.id === targetId)
+        : targets.find((item) => item.element === active)
+      if (!target || !['input', 'textarea'].includes(target.snapshot.tagName)) {
+        bus.emit('ACTION_BLOCKED', { id: targetId ?? 'dictation', reason: 'text-field-not-available' })
+        return
+      }
+      target.element.focus()
+      bus.emit('DICTATION_TARGET_SELECTED', {
+        targetId: target.snapshot.id,
+        name: target.snapshot.name,
+      })
+    } catch {
+      bus.emit('ACTION_BLOCKED', { id: targetId ?? 'dictation', reason: 'focus-failed' })
     }
   })
 
@@ -203,7 +234,9 @@ export function startTargetScanner(): () => void {
     window.removeEventListener('scroll', scheduleScan, true)
     window.removeEventListener('resize', scheduleScan)
     document.removeEventListener('load', scheduleScan, true)
-    offActivate()
+    offSelect()
+    offExecute()
+    offDictationFocus()
     if (frame !== null) window.cancelAnimationFrame(frame)
   }
 }
