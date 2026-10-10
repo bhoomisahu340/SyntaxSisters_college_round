@@ -209,20 +209,34 @@ export function startTargetScanner(): () => void {
   })
   const offDictationFocus = bus.on('DICTATION_START_REQUESTED', ({ targetId }) => {
     try {
-      const targets = scan()
       const active = document.activeElement
-      const target = targetId
-        ? targets.find((item) => item.snapshot.id === targetId)
-        : targets.find((item) => item.element === active)
-      if (!target || !['input', 'textarea'].includes(target.snapshot.tagName)) {
-        bus.emit('ACTION_BLOCKED', { id: targetId ?? 'dictation', reason: 'text-field-not-available' })
+      if (targetId) {
+        // Explicit target (e.g. "type here" over a locked field): resolve it from
+        // a fresh scan so we act on the intended element.
+        const target = scan().find((item) => item.snapshot.id === targetId)
+        if (!target || !['input', 'textarea'].includes(target.snapshot.tagName)) {
+          bus.emit('ACTION_BLOCKED', { id: targetId, reason: 'text-field-not-available' })
+          return
+        }
+        target.element.focus()
+        bus.emit('DICTATION_TARGET_SELECTED', {
+          targetId: target.snapshot.id,
+          name: target.snapshot.name,
+        })
         return
       }
-      target.element.focus()
-      bus.emit('DICTATION_TARGET_SELECTED', {
-        targetId: target.snapshot.id,
-        name: target.snapshot.name,
-      })
+      // No explicit target (e.g. "enter name" / "start typing"): use the field
+      // that is already focused. Do not depend on the scanner re-discovering it,
+      // which can fail transiently while the page is still scrolling it into view
+      // or a HUD occluder briefly overlaps it.
+      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
+        bus.emit('DICTATION_TARGET_SELECTED', {
+          targetId: getElementId(active),
+          name: accessibleName(active),
+        })
+        return
+      }
+      bus.emit('ACTION_BLOCKED', { id: 'dictation', reason: 'text-field-not-available' })
     } catch {
       bus.emit('ACTION_BLOCKED', { id: targetId ?? 'dictation', reason: 'focus-failed' })
     }

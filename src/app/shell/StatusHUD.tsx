@@ -10,6 +10,12 @@ import {
 } from '../../core/voice/recognizer.ts'
 import { useAppStore } from '../store.ts'
 
+/** True when the normalized transcript contains the configured wake word. */
+function containsWakeWord(text: string): boolean {
+  const normalized = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ')
+  return normalized.split(/\s+/).includes(WAKE_WORD)
+}
+
 export function StatusHUD() {
   const paused = useAppStore((state) => state.paused)
   const recRef = useRef<VoiceController | null>(null)
@@ -24,6 +30,8 @@ export function StatusHUD() {
   const [lane, setLane] = useState<Lane>('POINTER')
   const [governorWarning, setGovernorWarning] = useState('')
   const [speechErrors, setSpeechErrors] = useState(0)
+  const [wakeHint, setWakeHint] = useState('')
+  const wakeHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const detach = attachVoiceCommands()
@@ -45,7 +53,24 @@ export function StatusHUD() {
       if (status === 'listening' || status === 'idle') setLastError('')
     })
     const offError = bus.on('VOICE_ERROR', ({ error }) => setLastError(error))
-    const offMatch = bus.on('VOICE_COMMAND_MATCHED', ({ matched }) => setLastMatch(matched))
+    const offMatch = bus.on('VOICE_COMMAND_MATCHED', ({ text, matched }) => {
+      setLastMatch(matched)
+      // Coach the user only when a non-empty utterance failed to match AND did
+      // not contain the wake word. Successful matches and empty transcripts show
+      // nothing; the hint auto-dismisses and never executes anything.
+      if (!matched && text.trim() && !containsWakeWord(text)) {
+        if (wakeHintTimer.current !== null) clearTimeout(wakeHintTimer.current)
+        setWakeHint(`Tip: start your command with “${WAKE_WORD}”, e.g. “${WAKE_WORD}, scroll down”.`)
+        wakeHintTimer.current = setTimeout(() => {
+          wakeHintTimer.current = null
+          setWakeHint('')
+        }, 6000)
+      } else {
+        if (wakeHintTimer.current !== null) clearTimeout(wakeHintTimer.current)
+        wakeHintTimer.current = null
+        setWakeHint('')
+      }
+    })
     const offShield = bus.on('SHIELD_STATE_CHANGED', ({ message }) => setShieldMessage(message))
     const offLane = bus.on('LANE_CHANGED', ({ lane: next }) => setLane(next))
     const offWarning = bus.on('GOVERNOR_WARNING_CHANGED', ({ warning }) => setGovernorWarning(warning ?? ''))
@@ -73,6 +98,7 @@ export function StatusHUD() {
       offStart()
       offStop()
       window.removeEventListener('keydown', onKeyDown)
+      if (wakeHintTimer.current !== null) clearTimeout(wakeHintTimer.current)
       detach()
       rec.stop()
       rec.dispose()
@@ -111,6 +137,7 @@ export function StatusHUD() {
           {governorWarning ? <p className="truncate text-xs text-amber-300">{governorWarning}</p> : null}
           {lastError ? <p className="truncate text-xs text-amber-300">{lastError}</p> : null}
           {lastMatch !== null ? <p className="text-xs text-zinc-400">{lastMatch ? 'Command matched' : 'No command matched'}</p> : null}
+          {wakeHint ? <p className="truncate text-xs text-sky-300">{wakeHint}</p> : null}
           {shieldMessage ? <p className="truncate text-xs text-teal-200">{shieldMessage}</p> : null}
           {engineMessage ? <span className="sr-only">{engineMessage}</span> : null}
         </div>

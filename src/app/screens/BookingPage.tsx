@@ -32,6 +32,7 @@ const minimumBookingDate = getLocalDateString(new Date())
 
 export function BookingPage() {
   const formRef = useRef<HTMLFormElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
   const serviceRef = useRef<HTMLSelectElement>(null)
   const dateRef = useRef<HTMLInputElement>(null)
   const timeRef = useRef<HTMLSelectElement>(null)
@@ -112,10 +113,22 @@ export function BookingPage() {
       setVoiceNotice('Appointment form cleared.')
     })
 
+    // "Computer, enter name" → focus the Patient Name field and begin dictation.
+    // The dictation module resolves the now-focused field via the DOM target
+    // scanner, so spoken text lands in this input. Booking is never auto-submitted.
+    const offNameFocus = bus.on('BOOKING_NAME_FOCUS_REQUESTED', () => {
+      if (confirmation) return
+      nameRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      nameRef.current?.focus()
+      setVoiceNotice('Patient Name field selected. Speak your name, or say “start typing”.')
+      bus.emit('DICTATION_START_REQUESTED', { targetId: null })
+    })
+
     return () => {
       offAction()
       offSearch()
       offCancel()
+      offNameFocus()
     }
   }, [confirmation])
 
@@ -131,7 +144,7 @@ export function BookingPage() {
     const formData = new FormData(form)
     bus.emit('BENCHMARK_TASK_SIGNAL', { task: 'complete-booking' })
     setConfirmation([
-      { label: 'Name', value: String(formData.get('fullName') ?? '') },
+      { label: 'Patient Name', value: String(formData.get('fullName') ?? '') },
       { label: 'Email', value: String(formData.get('email') ?? '') },
       { label: 'Service', value: String(formData.get('service') ?? '') },
       { label: 'Date', value: String(formData.get('appointmentDate') ?? '') },
@@ -236,12 +249,13 @@ export function BookingPage() {
 
               <form ref={formRef} onSubmit={submitBooking}>
                 <div className="form-group">
-                  <label htmlFor="fullName">Full name *</label>
+                  <label htmlFor="fullName">Patient Name *</label>
                   <input
+                    ref={nameRef}
                     type="text"
                     id="fullName"
                     name="fullName"
-                    placeholder="Enter your full name"
+                    placeholder="Enter the patient's full name"
                     autoComplete="name"
                     required
                   />

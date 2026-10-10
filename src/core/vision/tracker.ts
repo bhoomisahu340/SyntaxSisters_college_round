@@ -69,10 +69,21 @@ function facePosition(result: FaceLandmarkerResult) {
   const rightCheek = landmarks[454]
   if (!nose || !leftCheek || !rightCheek) return null
 
+  // MediaPipe only returns a landmark set after the face passes the detection
+  // and presence confidence thresholds, so a present landmark set is already a
+  // confident detection. FaceLandmarker frequently reports visibility/presence
+  // as 0 (not undefined) even for clearly detected faces, which would collapse
+  // confidence to 0 and cause every frame to be discarded by the downstream
+  // confidence gates. Only trust those scores when they are positive numbers.
+  const landmarkScores = [nose.visibility, nose.presence].filter(
+    (value): value is number => typeof value === 'number' && value > 0,
+  )
+  const confidence = landmarkScores.length > 0 ? Math.min(...landmarkScores) : 0.9
+
   return {
     x: 1 - nose.x,
     y: nose.y,
-    confidence: Math.min(nose.visibility ?? 0.75, nose.presence ?? 0.75),
+    confidence,
     faceWidth: Math.abs(rightCheek.x - leftCheek.x),
   }
 }

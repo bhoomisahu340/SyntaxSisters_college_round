@@ -8,6 +8,40 @@ type VisionRuntimeProps = {
   debug: boolean
 }
 
+/** Explicit, human-readable diagnostic for every vision state. */
+function describeStatus(
+  status: VisionStatus,
+  faceDetected: boolean,
+  paused: boolean,
+): { label: string; tone: 'idle' | 'busy' | 'ok' | 'warn' | 'error' } {
+  if (paused) return { label: 'Paused', tone: 'idle' }
+  switch (status) {
+    case 'checking-model':
+      return { label: 'Loading model… checking files', tone: 'busy' }
+    case 'loading-model':
+      return { label: 'Loading model…', tone: 'busy' }
+    case 'requesting-camera':
+      return { label: 'Waiting for camera permission…', tone: 'busy' }
+    case 'running':
+      return faceDetected
+        ? { label: 'Face detected', tone: 'ok' }
+        : { label: 'Model loaded · no face detected', tone: 'warn' }
+    case 'model-missing':
+      return { label: 'Model error: file missing', tone: 'error' }
+    case 'camera-denied':
+      return { label: 'Camera error: permission denied', tone: 'error' }
+    case 'camera-unavailable':
+      return { label: 'Camera error: unavailable', tone: 'error' }
+    case 'unsupported':
+      return { label: 'Unsupported in this browser', tone: 'error' }
+    case 'error':
+      return { label: 'Tracking error', tone: 'error' }
+    case 'idle':
+    default:
+      return { label: 'Hands-free is off', tone: 'idle' }
+  }
+}
+
 export function VisionRuntime({ debug }: VisionRuntimeProps) {
   const paused = useAppStore((state) => state.paused)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -87,6 +121,18 @@ export function VisionRuntime({ debug }: VisionRuntimeProps) {
     }
   }, [])
 
+  const statusInfo = describeStatus(status, faceDetected, paused)
+  const statusDotClass =
+    statusInfo.tone === 'ok'
+      ? 'bg-emerald-500'
+      : statusInfo.tone === 'warn'
+        ? 'bg-amber-500'
+        : statusInfo.tone === 'error'
+          ? 'bg-red-500'
+          : statusInfo.tone === 'busy'
+            ? 'bg-sky-500 animate-pulse'
+            : 'bg-zinc-400'
+
   return (
     <aside
       data-target-ignore
@@ -99,14 +145,14 @@ export function VisionRuntime({ debug }: VisionRuntimeProps) {
       aria-label="Hands-free camera preview"
     >
       <div className="flex min-h-9 items-center justify-between gap-2 border-b border-[#e3e9ef] px-2.5 py-1.5">
-        <span className="truncate text-xs font-semibold text-[#17324f]">
-          {paused
-            ? 'Paused'
-            : status === 'running'
-              ? faceDetected ? 'Tracking active' : 'Face not detected'
-              : status === 'checking-model' || status === 'requesting-camera' || status === 'loading-model'
-                ? 'Starting hands-free…'
-                : 'Hands-free is off'}
+        <span
+          className="flex min-w-0 items-center gap-1.5 truncate text-xs font-semibold text-[#17324f]"
+          role="status"
+          aria-live="polite"
+          title={statusMessage}
+        >
+          <span className={`size-2 shrink-0 rounded-full ${statusDotClass}`} aria-hidden="true" />
+          <span className="truncate">{statusInfo.label}</span>
         </span>
         <button
           type="button"

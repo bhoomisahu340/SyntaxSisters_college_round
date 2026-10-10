@@ -50,6 +50,7 @@ export type BenchmarkSummary = {
   completedAt: number
 }
 export type BrowserSite = 'home' | 'shop' | 'booking'
+export type ShopCategory = 'All' | 'Accessibility' | 'Technology' | 'Daily Living' | 'Wellness'
 
 export type AppEvent =
   | {
@@ -118,9 +119,10 @@ export type AppEvent =
     }
   | {
       type: 'SHOP_CATEGORY_REQUESTED'
-      payload: { category: 'All' | 'Accessibility' | 'Technology' | 'Daily Living' | 'Wellness' }
+      payload: { category: ShopCategory }
     }
   | { type: 'SHOP_OPEN_PRODUCT_REQUESTED'; payload: { query: string } }
+  | { type: 'BOOKING_NAME_FOCUS_REQUESTED' }
   | {
       type: 'BOOKING_VOICE_ACTION_REQUESTED'
       payload: {

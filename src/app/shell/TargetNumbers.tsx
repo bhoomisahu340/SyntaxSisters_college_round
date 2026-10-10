@@ -49,6 +49,18 @@ export function TargetNumbers() {
       bus.emit('TARGET_LOCKED', { ...target, risk: isRiskyTarget(target) })
     }
 
+    // Dwell completion. Ordinary controls activate immediately; risky controls
+    // lock and wait for a spoken "confirm" through the Intent Shield. The
+    // same-position guard in the cursor handler prevents an instant re-fire.
+    const activateTarget = (target: TargetSnapshot) => {
+      if (useAppStore.getState().paused) return
+      if (isRiskyTarget(target)) {
+        lockTarget(target)
+        return
+      }
+      bus.emit('TARGET_EXECUTE_REQUESTED', { id: target.id })
+    }
+
     const offTargets = bus.on('TARGETS_UPDATED', ({ targets: next }) => {
       targetsRef.current = next
       setTargets(next)
@@ -69,7 +81,7 @@ export function TargetNumbers() {
       }, 40)
       dwellTimeout.current = setTimeout(() => {
         cancelDwell()
-        lockTarget(currentHover)
+        activateTarget(currentHover)
       }, dwellDuration.current)
     })
     const offCursor = bus.on('CURSOR_POSITION', (point) => {
@@ -103,7 +115,7 @@ export function TargetNumbers() {
       }, 40)
       dwellTimeout.current = setTimeout(() => {
         cancelDwell()
-        lockTarget(next)
+        activateTarget(next)
       }, dwellDuration.current)
     })
     const offLockCurrent = bus.on('TARGET_LOCK_CURRENT_REQUESTED', () => {

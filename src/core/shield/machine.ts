@@ -2,6 +2,7 @@ import { bus } from '../bus.ts'
 import type { TargetDescriptor } from '../events.ts'
 
 const LOCK_TIMEOUT_MS = 5000
+const CONFIRM_TIMEOUT_MS = 8000
 
 let attached = false
 
@@ -132,6 +133,10 @@ export function attachIntentShield(): () => void {
       if (locked.risk) {
         pendingVerb = verb
         state = 'AWAIT_CONFIRM'
+        // Give the user a fresh window to confirm; the original lock timer would
+        // otherwise expire mid-confirmation and cancel the pending action.
+        clearTimer()
+        lockTimer = setTimeout(() => clearLock('Confirmation expired. Lock a target again to retry.'), CONFIRM_TIMEOUT_MS)
         publish(`Risky action requested. Say “confirm” to ${verb} ${locked.name}.`)
         return
       }

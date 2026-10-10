@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { bus } from './core/bus.ts'
+import type { ShopCategory } from './core/events.ts'
 import { SiteLayout, type SiteRoute } from './app/shell/SiteLayout.tsx'
 import { HomePage } from './app/screens/HomePage.tsx'
 import { BookingPage } from './app/screens/BookingPage.tsx'
@@ -30,6 +31,8 @@ function routeFromHash(): SiteRoute {
 
 export default function App() {
   const [route, setRoute] = useState<SiteRoute>(routeFromHash)
+  const pendingCategoryRef = useRef<ShopCategory | null>(null)
+  const pendingNameFocusRef = useRef(false)
 
   useEffect(() => {
     const syncRoute = () => {
@@ -48,11 +51,51 @@ export default function App() {
       window.location.hash = toHref(tab.site)
       setRoute(tab.site)
     })
+    // Category commands must work from any screen. ShopPage is only mounted on
+    // the shop route, so a category request fired elsewhere would be lost.
+    // Navigate to the shop first, then re-deliver the category once it mounts.
+    const offCategory = bus.on('SHOP_CATEGORY_REQUESTED', ({ category }) => {
+      if (routeFromHash() === 'shop') return
+      pendingCategoryRef.current = category
+      window.location.hash = '#/shop'
+    })
+    // "Enter name" focuses the Patient Name field on the booking page. If the
+    // user is elsewhere, navigate to Appointments first, then request the focus
+    // once the page (and its input) has mounted.
+    const offNameFocus = bus.on('BOOKING_NAME_FOCUS_REQUESTED', () => {
+      if (routeFromHash() === 'booking') return
+      pendingNameFocusRef.current = true
+      window.location.hash = '#/booking'
+    })
     return () => {
       window.removeEventListener('hashchange', syncRoute)
       offTabAction()
+      offCategory()
+      offNameFocus()
     }
   }, [])
+
+  // Deliver a deferred category selection to the Shop page right after it mounts.
+  useEffect(() => {
+    if (route !== 'shop') return
+    const pending = pendingCategoryRef.current
+    if (!pending) return
+    pendingCategoryRef.current = null
+    const frame = window.requestAnimationFrame(() => {
+      bus.emit('SHOP_CATEGORY_REQUESTED', { category: pending })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [route])
+
+  // After navigating to Appointments, ask the booking page to focus the name field.
+  useEffect(() => {
+    if (route !== 'booking' || !pendingNameFocusRef.current) return
+    pendingNameFocusRef.current = false
+    const frame = window.requestAnimationFrame(() => {
+      bus.emit('BOOKING_NAME_FOCUS_REQUESTED')
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [route])
 
   return (
     <>

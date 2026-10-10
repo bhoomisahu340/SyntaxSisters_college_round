@@ -85,6 +85,9 @@ function run(id: VoiceCommandId): void {
     case 'type-here':
       bus.emit('VOICE_ACTION_REQUESTED', { verb: 'type-here' })
       break
+    case 'enter-name':
+      bus.emit('BOOKING_NAME_FOCUS_REQUESTED')
+      break
     case 'start-typing':
       bus.emit('DICTATION_START_REQUESTED', { targetId: null })
       break

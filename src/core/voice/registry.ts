@@ -32,6 +32,7 @@ export type VoiceCommandId =
   | 'open'
   | 'this'
   | 'type-here'
+  | 'enter-name'
   | 'confirm'
   | 'not-that-one'
   | 'start-typing'
@@ -74,6 +75,10 @@ const PHRASES: ReadonlyArray<readonly [string, VoiceCommandId]> = [
   ['not that one', 'not-that-one'],
   ['view details', 'view-details'],
   ['type here', 'type-here'],
+  ['enter name', 'enter-name'],
+  ['enter my name', 'enter-name'],
+  ['type my name', 'enter-name'],
+  ['type in my name', 'enter-name'],
   ['start typing', 'start-typing'],
   ['stop typing', 'stop-typing'],
   ['confirm', 'confirm'],
@@ -101,6 +106,60 @@ const PHRASES: ReadonlyArray<readonly [string, VoiceCommandId]> = [
 ]
 
 const PAUSE_OR_RESUME = new Set<VoiceCommandId>(['pause', 'resume'])
+
+/**
+ * Words that never change a command's meaning. Stripping them lets natural
+ * speech such as "go to the shop" or "go home now" still match, while keeping
+ * matching token-based (word boundaries) so unrelated words cannot collide.
+ */
+const SOFT_WORDS = new Set(['the', 'a', 'an', 'now', 'hey'])
+
+/** Real Shop categories. Kept in sync with ShopPage; no invented categories. */
+const CATEGORY_SLUGS: ReadonlyArray<{ slug: string; id: VoiceCommandId }> = [
+  { slug: 'all', id: 'show-all-products' },
+  { slug: 'accessibility', id: 'show-accessibility-products' },
+  { slug: 'technology', id: 'show-technology-products' },
+  { slug: 'daily living', id: 'show-daily-living-products' },
+  { slug: 'wellness', id: 'show-wellness-products' },
+]
+
+const categoryPhrases: ReadonlyArray<readonly [string, VoiceCommandId]> =
+  CATEGORY_SLUGS.flatMap(({ slug, id }) => [
+    [`go to ${slug}`, id],
+    [`show ${slug}`, id],
+    [`open ${slug}`, id],
+  ])
+
+/** Longer/static phrases first, then generated category phrases. */
+const ALL_PHRASES: ReadonlyArray<readonly [string, VoiceCommandId]> = [
+  ...PHRASES,
+  ...categoryPhrases,
+]
+
+function matchTokens(text: string): string[] {
+  return normalizeUtterance(text)
+    .split(' ')
+    .filter((token) => token.length > 0 && !SOFT_WORDS.has(token))
+}
+
+/** True when `phrase` appears as consecutive whole tokens inside `tokens`. */
+function isContiguousSubsequence(phrase: readonly string[], tokens: readonly string[]): boolean {
+  if (phrase.length === 0 || phrase.length > tokens.length) return false
+  for (let start = 0; start <= tokens.length - phrase.length; start += 1) {
+    let matched = true
+    for (let offset = 0; offset < phrase.length; offset += 1) {
+      if (tokens[start + offset] !== phrase[offset]) {
+        matched = false
+        break
+      }
+    }
+    if (matched) return true
+  }
+  return false
+}
+
+const TOKENIZED_PHRASES: ReadonlyArray<{ tokens: string[]; id: VoiceCommandId }> =
+  ALL_PHRASES.map(([phrase, id]) => ({ tokens: matchTokens(phrase), id }))
 
 export function normalizeUtterance(text: string): string {
   return text
@@ -168,8 +227,18 @@ export function matchNumberCommand(
 }
 
 function matchPhrase(haystack: string): VoiceCommandId | null {
-  for (const [phrase, id] of PHRASES) {
-    if (haystack === phrase) return id
+  const tokens = matchTokens(haystack)
+  if (tokens.length === 0) return null
+  for (const { tokens: phraseTokens, id } of TOKENIZED_PHRASES) {
+    if (phraseTokens.length === 0) continue
+    if (phraseTokens.length === 1) {
+      // Single-word verbs must match the whole utterance so that phrases like
+      // "open <product name>" still reach the dynamic open-product handler
+      // instead of being captured by the bare "open" verb.
+      if (tokens.length === 1 && tokens[0] === phraseTokens[0]) return id
+      continue
+    }
+    if (isContiguousSubsequence(phraseTokens, tokens)) return id
   }
   return null
 }
