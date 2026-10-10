@@ -1,0 +1,288 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appointments | Drishva</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="navbar">
+    <a href="index.html" class="brand">Drishva<span>.</span></a>
+
+    <nav class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="shop.html">Shop</a>
+      <a href="booking.html" class="active">Appointments</a>
+    </nav>
+
+    <a href="shop.html" class="nav-cta">Explore Shop ↗</a>
+  </header>
+
+  <main class="booking-page">
+
+    <!-- Page heading -->
+    <section class="booking-heading">
+      <span class="section-label">DRISHVA SERVICES</span>
+      <h1>Book an <span>Appointment.</span></h1>
+      <p>
+        Schedule a sample appointment using our simple and
+        accessible booking interface.
+      </p>
+    </section>
+
+    <!-- Booking layout -->
+    <section class="booking-layout">
+
+      <!-- Left information panel -->
+      <aside class="booking-info">
+        <div class="booking-icon">
+          <svg viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="16" rx="2"/>
+            <path d="M16 3v4M8 3v4M3 10h18"/>
+            <path d="M12 13v5M9.5 15.5h5"/>
+          </svg>
+        </div>
+
+        <h2>Your time matters.</h2>
+        <p>
+          Choose a service, select your preferred date and time,
+          and review your details before submitting.
+        </p>
+
+        <div class="booking-benefits">
+          <div class="benefit">
+            <span>01</span>
+            <div>
+              <h3>Choose a service</h3>
+              <p>Select the appointment type you need.</p>
+            </div>
+          </div>
+
+          <div class="benefit">
+            <span>02</span>
+            <div>
+              <h3>Select a time</h3>
+              <p>Choose a date and available time slot.</p>
+            </div>
+          </div>
+
+          <div class="benefit">
+            <span>03</span>
+            <div>
+              <h3>Confirm your details</h3>
+              <p>Review your information before submitting.</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="demo-note">
+          Demo only — appointments are not sent to a real clinic.
+        </p>
+      </aside>
+
+      <!-- Appointment form -->
+      <div class="booking-form-card">
+        <div class="form-heading">
+          <h2>Appointment details</h2>
+          <p>Fields marked with * are required.</p>
+        </div>
+
+        <form id="appointmentForm">
+
+          <div class="form-group">
+            <label for="fullName">Full name *</label>
+            <input
+              type="text"
+              id="fullName"
+              name="fullName"
+              placeholder="Enter your full name"
+              autocomplete="name"
+              required
+            >
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="email">Email address *</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="you@example.com"
+                autocomplete="email"
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="phone">Phone number</label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                placeholder="Optional"
+                autocomplete="tel"
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="service">Appointment type *</label>
+            <select id="service" name="service" required>
+              <option value="">Select an appointment type</option>
+              <option value="General Consultation">General Consultation</option>
+              <option value="Eye Consultation">Eye Consultation</option>
+              <option value="Dental Consultation">Dental Consultation</option>
+              <option value="Follow-up Visit">Follow-up Visit</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="appointmentDate">Preferred date *</label>
+              <input
+                type="date"
+                id="appointmentDate"
+                name="appointmentDate"
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="appointmentTime">Preferred time *</label>
+              <select id="appointmentTime" name="appointmentTime" required>
+                <option value="">Choose a time</option>
+                <option value="09:00 AM">09:00 AM</option>
+                <option value="10:00 AM">10:00 AM</option>
+                <option value="11:00 AM">11:00 AM</option>
+                <option value="12:00 PM">12:00 PM</option>
+                <option value="02:00 PM">02:00 PM</option>
+                <option value="03:00 PM">03:00 PM</option>
+                <option value="04:00 PM">04:00 PM</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="notes">Additional notes</label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows="3"
+              placeholder="Anything you would like us to know? (Optional)"
+            ></textarea>
+          </div>
+
+          <label class="consent-row">
+            <input type="checkbox" id="confirmDetails" required>
+            <span>I have checked my appointment details.</span>
+          </label>
+
+          <button type="submit" class="booking-submit">
+            Confirm Appointment <span>→</span>
+          </button>
+
+          <p class="form-footnote">
+            This is a prototype. Submitting does not create a real booking.
+          </p>
+
+        </form>
+
+        <!-- Confirmation -->
+        <section id="bookingSuccess" class="booking-success" hidden aria-live="polite">
+          <div class="success-icon">✓</div>
+          <h2>Appointment details submitted!</h2>
+          <p>Your demo appointment summary is shown below.</p>
+
+          <div class="confirmation-details" id="confirmationDetails"></div>
+
+          <button type="button" id="bookAnother" class="booking-submit">
+            Book Another Appointment
+          </button>
+        </section>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <a href="index.html" class="brand">Drishva<span>.</span></a>
+    <p>See. Speak. Browse.</p>
+    <span>Designed with accessibility in mind.</span>
+  </footer>
+
+  <script>
+    const appointmentForm = document.getElementById("appointmentForm");
+    const bookingSuccess = document.getElementById("bookingSuccess");
+    const confirmationDetails = document.getElementById("confirmationDetails");
+    const appointmentDate = document.getElementById("appointmentDate");
+    const bookAnother = document.getElementById("bookAnother");
+
+    // Prevent choosing a past date.
+    const today = new Date();
+    const localToday = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0")
+    ].join("-");
+
+    appointmentDate.min = localToday;
+
+    appointmentForm.addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      if (!appointmentForm.reportValidity()) return;
+
+      const formData = new FormData(appointmentForm);
+
+      const details = [
+        ["Name", formData.get("fullName")],
+        ["Email", formData.get("email")],
+        ["Service", formData.get("service")],
+        ["Date", formData.get("appointmentDate")],
+        ["Time", formData.get("appointmentTime")]
+      ];
+
+      confirmationDetails.replaceChildren();
+
+      details.forEach(([label, value]) => {
+        const row = document.createElement("div");
+        row.className = "confirmation-row";
+
+        const name = document.createElement("span");
+        name.textContent = label;
+
+        const result = document.createElement("strong");
+        result.textContent = value;
+
+        row.append(name, result);
+        confirmationDetails.appendChild(row);
+      });
+
+      appointmentForm.hidden = true;
+      bookingSuccess.hidden = false;
+      bookingSuccess.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    bookAnother.addEventListener("click", function() {
+      appointmentForm.reset();
+      appointmentForm.hidden = false;
+      bookingSuccess.hidden = true;
+      appointmentDate.min = localToday;
+      appointmentForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  </script>
+
+</body>
+</html>

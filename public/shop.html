@@ -1,0 +1,73 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop | Drishva</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="navbar">
+  <a href="index.html" class="brand">Drishva<span>.</span></a>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="shop.html" class="active">Shop</a>
+    <a href="booking.html">Appointments</a>
+  </nav>
+  <a href="booking.html" class="nav-cta">Appointments ↗</a>
+</header>
+
+<main class="shop-page">
+  <div class="shop-heading">
+    <span class="section-label">THE DRISHVA COLLECTION</span>
+    <h1>Shop useful essentials.</h1>
+    <p>Explore a curated demo collection in a simple, accessible layout.</p>
+  </div>
+
+  <div class="shop-tools">
+    <input
+      id="productSearch"
+      class="shop-search"
+      type="search"
+      placeholder="Search products..."
+      aria-label="Search products"
+    >
+  </div>
+
+  <div class="category-filters" id="categoryFilters">
+    <button class="category-button active" data-category="All">All products</button>
+    <button class="category-button" data-category="Accessibility">Accessibility</button>
+    <button class="category-button" data-category="Technology">Technology</button>
+    <button class="category-button" data-category="Daily Living">Daily living</button>
+    <button class="category-button" data-category="Wellness">Wellness</button>
+  </div>
+
+  <div class="product-grid" id="productGrid" aria-live="polite"></div>
+</main>
+
+<footer class="footer">
+  <a href="index.html" class="brand">Drishva<span>.</span></a>
+  <p>See. Speak. Browse.</p>
+  <span>Sample products for demonstration only.</span>
+</footer>
+
+<div class="product-modal" id="productModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-content">
+    <button class="modal-close" id="closeModal" aria-label="Close dialog">×</button>
+    <div id="modalImage"></div>
+    <span class="product-category" id="modalCategory"></span>
+    <h2 id="modalTitle"></h2>
+    <p id="modalDescription"></p>
+    <div class="product-price" id="modalPrice"></div>
+    <p>This is a demonstration listing. No purchase is made.</p>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
+
