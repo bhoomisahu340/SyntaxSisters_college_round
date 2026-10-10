@@ -1,5 +1,9 @@
 import { bus } from '../bus.ts'
-import { matchCommand, type VoiceCommandId } from './registry.ts'
+import {
+  matchCommand,
+  matchNumberCommand,
+  type VoiceCommandId,
+} from './registry.ts'
 
 const SCROLL_PX = 420
 
@@ -19,6 +23,22 @@ function run(id: VoiceCommandId): void {
       break
     case 'go-forward':
       window.history.forward()
+      break
+    case 'book-appointment':
+    case 'go-to-appointments':
+      window.location.hash = '#/booking'
+      break
+    case 'go-to-shop':
+      window.location.hash = '#/shop'
+      break
+    case 'show-numbers':
+      bus.emit('TARGETS_VISIBILITY_CHANGED', { visible: true })
+      break
+    case 'hide-numbers':
+      bus.emit('TARGETS_VISIBILITY_CHANGED', { visible: false })
+      break
+    case 'click-number':
+    case 'open-number':
       break
     case 'new-tab':
     case 'next-tab':
@@ -44,6 +64,19 @@ export function attachVoiceCommands(): () => void {
 
   const offFinal = bus.on('VOICE_FINAL', ({ text }) => {
     try {
+      const numberedCommand = matchNumberCommand(text)
+      if (numberedCommand) {
+        if (paused) {
+          bus.emit('ACTION_BLOCKED', { id: 'voice', reason: 'paused' })
+          return
+        }
+        bus.emit('TARGET_ACTIVATE_REQUESTED', {
+          number: numberedCommand.number,
+          verb: numberedCommand.id === 'click-number' ? 'click' : 'open',
+        })
+        return
+      }
+
       const command = matchCommand(text)
       if (!command) return
       if (paused && command !== 'resume') {

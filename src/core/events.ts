@@ -11,6 +11,25 @@ export type AppEvent =
   | { type: 'TARGET_SNAPPED'; payload: { id: string } }
   | { type: 'TARGET_LOCKED'; payload: { id: string; risk: boolean } }
   | { type: 'TARGET_CLEARED' }
+  | { type: 'TARGETS_VISIBILITY_CHANGED'; payload: { visible: boolean } }
+  | {
+      type: 'TARGETS_UPDATED'
+      payload: {
+        targets: Array<{
+          id: string
+          number: number
+          name: string
+          top: number
+          left: number
+          width: number
+          height: number
+        }>
+      }
+    }
+  | {
+      type: 'TARGET_ACTIVATE_REQUESTED'
+      payload: { number: number; verb: 'click' | 'open' }
+    }
   | { type: 'ACTION_EXECUTED'; payload: { id: string; verb: string } }
   | { type: 'ACTION_BLOCKED'; payload: { id: string; reason: string } }
   | { type: 'LANE_CHANGED'; payload: { lane: Lane } }

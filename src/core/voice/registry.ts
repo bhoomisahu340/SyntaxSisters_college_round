@@ -8,6 +8,13 @@ export type VoiceCommandId =
   | 'new-tab'
   | 'next-tab'
   | 'close-tab'
+  | 'go-to-shop'
+  | 'go-to-appointments'
+  | 'book-appointment'
+  | 'show-numbers'
+  | 'hide-numbers'
+  | 'click-number'
+  | 'open-number'
   | 'pause'
   | 'resume'
 
@@ -19,6 +26,16 @@ const PHRASES: ReadonlyArray<readonly [string, VoiceCommandId]> = [
   ['start listening', 'resume'],
   ['scroll down', 'scroll-down'],
   ['scroll up', 'scroll-up'],
+  ['show numbers', 'show-numbers'],
+  ['hide numbers', 'hide-numbers'],
+  ['go to appointments', 'go-to-appointments'],
+  ['open appointments', 'go-to-appointments'],
+  ['go to booking', 'go-to-appointments'],
+  ['open booking', 'go-to-appointments'],
+  ['go to shop', 'go-to-shop'],
+  ['open shop', 'go-to-shop'],
+  ['book an appointment', 'book-appointment'],
+  ['book appointment', 'book-appointment'],
   ['page down', 'scroll-down'],
   ['page up', 'scroll-up'],
   ['go forward', 'go-forward'],
@@ -61,6 +78,21 @@ function stripWake(normalized: string): { hasWake: boolean; rest: string } {
     return { hasWake: true, rest: normalized.slice(0, -wake.length).trim() }
   }
   return { hasWake: false, rest: normalized }
+}
+
+export function matchNumberCommand(
+  raw: string,
+): { id: 'click-number' | 'open-number'; number: number } | null {
+  const normalized = normalizeUtterance(raw)
+  const { hasWake, rest } = stripWake(normalized)
+  if (!hasWake) return null
+
+  const match = /^(click|open)\s+(\d{1,2})$/.exec(rest)
+  if (!match) return null
+
+  const number = Number(match[2])
+  if (number < 1) return null
+  return { id: match[1] === 'click' ? 'click-number' : 'open-number', number }
 }
 
 function matchPhrase(haystack: string): VoiceCommandId | null {

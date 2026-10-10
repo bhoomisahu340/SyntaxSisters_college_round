@@ -1,26 +1,39 @@
+import { useEffect, useState } from 'react'
+import { SiteLayout, type SiteRoute } from './app/shell/SiteLayout.tsx'
+import { HomePage } from './app/screens/HomePage.tsx'
+import { BookingPage } from './app/screens/BookingPage.tsx'
+import { ShopPage } from './app/screens/ShopPage.tsx'
 import { StatusHUD } from './app/shell/StatusHUD.tsx'
-import { useAppStore } from './app/store.ts'
+import { TargetNumbers } from './app/shell/TargetNumbers.tsx'
+
+function routeFromHash(): SiteRoute {
+  const path = window.location.hash.slice(1).split('?')[0]
+  if (path === '/shop') return 'shop'
+  if (path === '/booking') return 'booking'
+  return 'home'
+}
 
 export default function App() {
-  const paused = useAppStore((s) => s.paused)
+  const [route, setRoute] = useState<SiteRoute>(routeFromHash)
+
+  useEffect(() => {
+    const syncRoute = () => setRoute(routeFromHash())
+    window.addEventListener('hashchange', syncRoute)
+    return () => window.removeEventListener('hashchange', syncRoute)
+  }, [])
 
   return (
     <>
-      <main className="min-h-[220vh] bg-zinc-950 px-6 pb-28 pt-16 text-zinc-100">
-        <div className="mx-auto max-w-xl text-center">
-          <h1 className="text-5xl font-semibold tracking-tight">Drishva</h1>
-          <p className="mt-3 text-lg text-zinc-400">See. Speak. Browse.</p>
-          <p className="mt-8 text-sm text-zinc-500">
-            {paused ? 'Paused' : 'Ready'}
-          </p>
-        </div>
-        <p className="mx-auto mt-[70vh] max-w-xl text-center text-zinc-500">
-          Mid page — try “scroll down”
-        </p>
-        <p className="mx-auto mt-[70vh] max-w-xl text-center text-zinc-600">
-          End of page
-        </p>
-      </main>
+      <SiteLayout route={route}>
+        {route === 'home' ? (
+          <HomePage />
+        ) : route === 'shop' ? (
+          <ShopPage />
+        ) : (
+          <BookingPage />
+        )}
+      </SiteLayout>
+      <TargetNumbers />
       <StatusHUD />
     </>
   )

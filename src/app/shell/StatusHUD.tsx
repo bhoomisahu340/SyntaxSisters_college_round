@@ -62,7 +62,7 @@ export function StatusHUD() {
   const transcript = interim || finalText || `Say “${WAKE_WORD} scroll down”`
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-800 bg-zinc-900/95 px-4 py-3 text-sm text-zinc-100">
+    <div data-target-ignore className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-800 bg-zinc-900/95 px-4 py-3 text-sm text-zinc-100">
       <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-3">
         <span
           className={`rounded-full px-2 py-1 text-xs font-medium ${

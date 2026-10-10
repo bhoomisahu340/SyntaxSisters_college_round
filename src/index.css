@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '../drishva/style.css' layer(base);
 
 html,
 body,
